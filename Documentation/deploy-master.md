@@ -138,7 +138,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-apiserver
-    image: gcr.io/google_containers/hyperkube:v1.1.2
+    image: quay.io/mjg59/hyperkube
     command:
     - /hyperkube
     - apiserver
@@ -148,7 +148,8 @@ spec:
     - --service-cluster-ip-range=${SERVICE_IP_RANGE}
     - --secure-port=443
     - --advertise-address=${ADVERTISE_IP}
-    - --admission-control=NamespaceLifecycle,NamespaceExists,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota
+    - --admission-control=TPMAdmit,NamespaceLifecycle,NamespaceExists,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota
+    - --admission-control-config-file=/etc/kubernetes/config/admission.cnf
     - --tls-cert-file=/etc/kubernetes/ssl/apiserver.pem
     - --tls-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem
     - --client-ca-file=/etc/kubernetes/ssl/ca.pem
@@ -167,6 +168,9 @@ spec:
     - mountPath: /etc/ssl/certs
       name: ssl-certs-host
       readOnly: true
+    - mountPath: /etc/kubernetes/config
+      name: config-kubernetes
+      readOnly: true
   volumes:
   - hostPath:
       path: /etc/kubernetes/ssl
@@ -174,6 +178,36 @@ spec:
   - hostPath:
       path: /usr/share/ca-certificates
     name: ssl-certs-host
+  - hostPath:
+      path: /etc/kubernetes/config
+    name: config-kubernetes
+```
+
+Create `etc/kubernetes/config/admission.cnf`
+
+**/etc/kubernetes/config/admission.cnf**
+
+```json
+{"tpmadmit.pcrconfig": "/etc/kubernetes/config/pcr.config"}
+```
+
+Now configure the acceptable TPM policy in `/etc/kubernetes/config/pcr.config`. These values should be obtained from /sys/class/tpm/tpm0/device/pcrs on a node rather than using the values below. If different nodes have different values, add multiple entries. For now, please use only PCRs 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 and 10.
+
+**/etc/kubernetes/config/pcr.config**
+
+```json
+{"0": ["DE4BB95F83D56B23980D9635D86E626ACA2D1784"],
+ "1": ["3A3F780F11A4B49969FCAA80CD6E3957C33B2275"],
+ "2": ["3A3F780F11A4B49969FCAA80CD6E3957C33B2275", "8CECBB1A85A36E8C3AB49C6BBC8F02A845E4D935"],
+ "3": ["3A3F780F11A4B49969FCAA80CD6E3957C33B2275"],
+ "4": ["352D136A072D3BDBA0B43A3F3A87C962E8712D92"],
+ "5": ["1EB95F00F704DE8190F120350D6C0BA60DE0D573"],
+ "6": ["3A3F780F11A4B49969FCAA80CD6E3957C33B2275"],
+ "7": ["3A3F780F11A4B49969FCAA80CD6E3957C33B2275"],
+ "8": ["53BBB19CFDFEE26544449B3D6374F0D0893EF2CE"],
+ "9": ["728A1A9561178C5F4617DC3E26259D0A11F803BF"],
+ "10": ["B2A68A5D4EA505F294A10AD5300BAF64F52A5DDB"],
+}
 ```
 
 ### Set Up the kube-proxy Pod
@@ -196,7 +230,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-proxy
-    image: gcr.io/google_containers/hyperkube:v1.1.2
+    image: quay.io/mjg59/hyperkube
     command:
     - /hyperkube
     - proxy
@@ -298,7 +332,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-controller-manager
-    image: gcr.io/google_containers/hyperkube:v1.1.2
+    image: quay.io/mjg59/hyperkube
     command:
     - /hyperkube
     - controller-manager
@@ -346,7 +380,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-scheduler
-    image: gcr.io/google_containers/hyperkube:v1.1.2
+    image: quay.io/mjg59/hyperkube
     command:
     - /hyperkube
     - scheduler

@@ -120,7 +120,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-proxy
-    image: gcr.io/google_containers/hyperkube:v1.1.2
+    image: quay.io/mjg59/hyperkube
     command:
     - /hyperkube
     - proxy
@@ -176,6 +176,33 @@ contexts:
     user: kubelet
   name: kubelet-context
 current-context: kubelet-context
+```
+
+## Enable the TPM service
+
+Create `/etc/systemd/system/tpmd.service`:
+
+**/etc/systemd/sytem/tpmd.service**
+
+```yaml
+[Unit]
+Description=TPM remote access daemon
+Requires=tcsd.service
+
+[Service]
+User=tss
+ExecStart=/bin/tpmd 23179
+
+[Install]
+WantedBy=multi-user.target
+```
+
+and start and enable it:
+
+```sh
+$ sudo systemctl start tpmd
+$ sudo systemctl enable tpmd
+Created symlink from /etc/systemd/system/multi-user.target.wants/tpmd.service to /etc/systemd/system/tpmd.service.
 ```
 
 ## Start Services
